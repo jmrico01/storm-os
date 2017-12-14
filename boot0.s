@@ -1,31 +1,38 @@
+[org 0x7c00]
+
 mov ah, 0x0e
-mov al, 'H'
+
+mov al, the_secret
 int 0x10
-mov al, 'e'
+
+mov al, '|'
 int 0x10
-mov al, 'l'
+
+mov al, [the_secret]
 int 0x10
-mov al, 'l'
+
+mov al, '|'
 int 0x10
-mov al, 'o'
+
+mov bx, the_secret
+add bx, 0x7c00
+mov al, [bx]
 int 0x10
-mov al, ' '
+
+mov al, '|'
 int 0x10
-mov al, 'S'
+
+mov al, [0x7c2d]
 int 0x10
-mov al, 'a'
-int 0x10
-mov al, 'i'
-int 0x10
-mov al, 'l'
-int 0x10
-mov al, 'o'
-int 0x10
-mov al, 'r'
+
+mov al, '|'
 int 0x10
 
 ; jmp here forever
 jmp $
+
+the_secret:
+db "X"
 
 ; pad file up until the 510th byte
 times 510 -( $ - $$ ) db 0
