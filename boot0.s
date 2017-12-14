@@ -1,40 +1,81 @@
 [org 0x7c00]
 
-mov ah, 0x0e
+; BIOS stores boot drive in dl
+mov [BOOT_DRIVE], dl
 
-mov al, the_secret
-int 0x10
+; clear segment registers
+xor ax, ax
+mov ds, ax
+mov es, ax
+mov ss, ax
 
-mov al, '|'
-int 0x10
+; set up stack
+;   TODO come back to this
+mov bp, 0x8000
+mov sp, bp
 
-mov al, [the_secret]
-int 0x10
+;mov bx, TESTSTR
+;call PrintString
 
-mov al, '|'
-int 0x10
+; BIOS read sector function
+mov ah, 0x02
+mov dl, [BOOT_DRIVE] ; drive number
+mov ch, 0 ; cylinder 0
+mov dh, 0 ; track 0
+mov cl, 2 ; 2nd sector (sector count starts at 1)
+mov al, 2 ; number of sectors to read
 
-mov bx, the_secret
-add bx, 0x7c00
-mov al, [bx]
-int 0x10
+; target address (es:bx)
+mov bx, 0x9000
 
-mov al, '|'
-int 0x10
+int 0x13
 
-mov al, [0x7c2d]
-int 0x10
+jc disk_error
+cmp al, 1
+jne disk_error
 
-mov al, '|'
-int 0x10
+mov bx, TESTSTR
+call PrintString
 
 ; jmp here forever
 jmp $
 
-the_secret:
-db "X"
+disk_error:
+    mov bx, DISK_ERR_STR
+    call PrintString
+    jmp $
+
+PrintString:
+    pusha
+    mov ah, 0x0e
+    print_loop:
+        mov al, [bx]
+        add bx, 1
+        cmp al, 0
+        je print_done
+        int 0x10
+        jmp print_loop
+
+    print_done:
+        popa
+        ret
+
+; ----- Global variables -----
+BOOT_DRIVE: db 0
+
+TESTSTR:
+db 'Hello, sailor', 0
+
+DISK_ERR_STR:
+db 'Disk read error.', 0
 
 ; pad file up until the 510th byte
 times 510 -( $ - $$ ) db 0
 
 dw 0xaa55
+
+; testing data on other sectors
+times 256 dw 0xcafe
+times 256 dw 0xbabe
+times 256 dw 0xdead
+times 256 dw 0xface
