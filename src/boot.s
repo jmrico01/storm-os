@@ -1,5 +1,7 @@
+; -----------------------------------------------------------------------------
+; ---------------------------- START OF 1ST SECTOR ----------------------------
+; -----------------------------------------------------------------------------
 [bits 16]
-; ----- START OF 1ST SECTOR -----
 
 BOOT0_ADDR      equ 0x7c00
 BOOT1_ADDR      equ 0x7e00
@@ -17,10 +19,18 @@ mov ds, ax
 mov es, ax
 mov ss, ax
 
+; set to normal (80x25 text) video mode */
+mov ah, 0
+mov al, 3
+int	0x10
+
 ; set up stack
 ;   TODO come back to this
 mov bp, STACK_ADDR
 mov sp, bp
+
+mov bx, STR_START
+call PrintString16
 
 ; target address for disk read (es:bx)
 mov ax, 0
@@ -118,6 +128,8 @@ PrintHex16:
 BOOT_DRIVE:
 db 0
 
+STR_START:
+db 'Running boot sector.', 0x0a, 0x0d, 0
 STR_LOADED_BOOT:
 db 'Loaded extended boot sector.', 0x0a, 0x0d, 0
 STR_LOADED_KERNEL:
@@ -137,7 +149,9 @@ times 510 -( $ - $$ ) db 0
 
 dw 0xaa55
 
-; ----- START OF 2ND SECTOR -----
+; -----------------------------------------------------------------------------
+; ---------------------------- START OF 2ND SECTOR ----------------------------
+; -----------------------------------------------------------------------------
 KERNEL_ADDR     equ 0x1000
 KERNEL_SECTORS  equ 1
 CODE_SEG        equ gdt_code - gdt_start
@@ -220,46 +234,18 @@ gdt_descriptor:
 dw gdt_end - gdt_start - 1  ; Size
 dd gdt_start                ; Start
 
-[bits 32]
 ; -- 32-bit section, protected mode --
+[bits 32]
 
 VIDEO_MEMORY        equ 0xb8000
 CHAR_WHITE_ON_BLACK equ 0x0f
 
 protected_mode:
 
-mov ebx, STR_PROTECTED_MODE
-call PrintString
-
 ; Jump to the kernel code
 jmp KERNEL_ADDR
 
 jmp $
-
-PrintString:
-    pusha
-    mov edx, VIDEO_MEMORY
-
-    pstr_loop:
-        mov al, [ebx]
-        mov ah, CHAR_WHITE_ON_BLACK
-
-        cmp al, 0
-        je pstr_done
-
-        mov [edx], ax
-
-        add ebx, 1
-        add edx, 2
-
-        jmp pstr_loop
-
-    pstr_done:
-    popa
-    ret
-
-STR_PROTECTED_MODE:
-db "Entered 32-bit protected mode", 0
 
 ; pad file up until the 1024th byte
 times 1024 -( $ - $$ ) db 0
