@@ -2,15 +2,13 @@
 
 void KernelMain()
 {
-    char* videoMemory = (char*)0xb8000;
-    *videoMemory = 'X';
+    PrintString("Hello, sailor\n");
+    PrintString("Hello!\n\n\n");
+    PrintString("Hiya");
+    PrintString("... and hi again!\n\n\n\n\n\n\n\n\n\ncafe babe");
+    PrintString("\n\n\n\n\n\n\n\n\n\n\n\n\n\nboo\n");
 
-    //PrintString("Hello, sailor");
-
-    //char* videoMemory = (char*)0xb8000;
-    //*videoMemory = 'D';
-
-    while(1);
+    while(i);
 }
 
 #include "port_io.c"

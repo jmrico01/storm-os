@@ -106,9 +106,9 @@ PrintString16:
  * ---------------------------------------------------------------------------
 */
 .set KERNEL_ADDR,       0x1000
-.set KERNEL_SECTORS,    1
-.set CODE_SEG,          gdt_code - gdt_start
-.set DATA_SEG,          gdt_data - gdt_start
+.set KERNEL_SECTORS,    16
+.set CODE_SEG,          0x08
+.set DATA_SEG,          0x10
 
 BOOT1:
 
@@ -135,29 +135,30 @@ jne disk_error
 mov $STR_LOADED_KERNEL, %bx
 call PrintString16
 
-# Register the GDT
-lgdt gdt_descriptor
 # Disable interrupts until we set them up for 32-bit mode
 cli
+# Register the GDT
+lgdt gdt_descriptor
 
 # Switch to 32-bit mode by setting 1st bit of cr0
-mov %cr0, %eax
-or  $1, %eax
-mov %eax, %cr0
+movl %cr0, %eax
+orl  $1, %eax
+movl %eax, %cr0
 
 # Issue a long jump to flush the processor instruction pipeline
 # This ensures that the 32-bit code flag is truly set
-# jmp $CODE_SEG, protected_mode
-# TODO use long jump?
-jmp protected_mode
+ljmp $CODE_SEG, $protected_mode
+
+# 4-byte alignment for GDT
+.balign 4
 
 # -- GDT --
 gdt_start:
 
 # First entry of the GDT should be null, to catch errors
 gdt_null:
-.int 0
-.int 0
+.word 0, 0
+.byte 0, 0, 0, 0
 
 # Code segment descriptor
 # base = 0, limit = 0xffff
@@ -188,7 +189,7 @@ gdt_end:
 # GDT descriptor
 gdt_descriptor:
 .word gdt_end - gdt_start - 1   # Size
-.word gdt_start                 # Start
+.long gdt_start                 # Start
 
 # -- 32-bit section, protected mode --
 .code32

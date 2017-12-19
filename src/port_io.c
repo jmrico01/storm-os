@@ -1,4 +1,4 @@
-#include "types.h"
+#include "port_io.h"
 
 // TODO make these inline?
 uint8 PortByteIn(uint16 port)

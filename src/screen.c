@@ -1,11 +1,16 @@
 #include "screen.h"
 
-#include "types.h"
+#include "port_io.h"
 
-/*static inline int RowColToOffset(int row, int col)
-{
-    return col * 2 + row * 2 * MAX_COLS;
-}*/
+#define VIDEO_ADDRESS 0xb8000
+#define MAX_ROWS 25
+#define MAX_COLS 80
+
+#define ATTR_WHITE_ON_BLACK 0x0f
+
+// Screen device I/O ports
+#define REG_SCREEN_CTRL 0x3d4
+#define REG_SCREEN_DATA 0x3d5
 
 static int GetCursor()
 {
@@ -32,21 +37,6 @@ static void SetCursor(int offset)
     PortByteOut(REG_SCREEN_DATA, (uint8)(offset & 0x0000FFFF));
 }
 
-/**
- * Prints the character c with attributes attr
- * at the given row and column.
- */
-static void PrintChar(char c, char attr, int row, int col)
-{
-    uint8* videoMemory = (uint8*)VIDEO_ADDRESS;
-
-    int offset = col * 2 + row * 2 * MAX_COLS;
-    videoMemory[offset] = c;
-    videoMemory[offset + 1] = attr;
-
-    SetCursor(offset + 2);
-}
-
 static void PrintCharAtCursor(char c, char attr)
 {
     uint8* videoMemory = (uint8*)VIDEO_ADDRESS;
@@ -62,11 +52,14 @@ void PrintString(const char* str)
 {
     const char* c = str;
     while (*c != 0) {
-        //PrintCharAtCursor(*c, ATTR_WHITE_ON_BLACK);
+        if (*c == '\n') {
+            int offset = GetCursor();
+            offset = (offset / MAX_COLS / 2 + 1) * MAX_COLS * 2;
+            SetCursor(offset);
+        }
+        else {
+            PrintCharAtCursor(*c, ATTR_WHITE_ON_BLACK);
+        }
         c++;
-        break;
     }
-
-    char* videoMemory = (char*)0xb8000;
-    *videoMemory = 'P';
 }
