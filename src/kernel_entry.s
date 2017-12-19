@@ -1,6 +1,4 @@
-[bits 32]
-[extern KernelMain]
+.code32
 
 call KernelMain
-jmp $
-
+jmp .

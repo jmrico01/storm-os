@@ -1,251 +1,204 @@
-; -----------------------------------------------------------------------------
-; ---------------------------- START OF 1ST SECTOR ----------------------------
-; -----------------------------------------------------------------------------
-[bits 16]
+/**
+ * ---------------------------------------------------------------------------
+ * --------------------------- START OF 1ST SECTOR ---------------------------
+ * ---------------------------------------------------------------------------
+*/
+.code16
 
-BOOT0_ADDR      equ 0x7c00
-BOOT1_ADDR      equ 0x7e00
-BOOT1_SECTORS   equ 1
-STACK_ADDR      equ BOOT0_ADDR - 4
+.set BOOT0_ADDR,    0x7c00
+.set BOOT1_ADDR,    0x7e00
+.set BOOT1_SECTORS, 1
+.set STACK_ADDR,    BOOT0_ADDR
 
-[org BOOT0_ADDR]
+# clear segment registers
+xorw %ax, %ax
+movw %ax, %ds
+movw %ax, %es
+movw %ax, %ss
 
-; BIOS stores boot drive in dl
-mov [BOOT_DRIVE], dl
+# BIOS stores boot drive in dl
+movb %dl, BOOT_DRIVE
 
-; clear segment registers
-mov ax, 0
-mov ds, ax
-mov es, ax
-mov ss, ax
+# set to normal (80x25 text) video mode
+movb $0, %ah
+movb $3, %al
+int	$0x10
 
-; set to normal (80x25 text) video mode */
-mov ah, 0
-mov al, 3
-int	0x10
+# set up stack
+#   TODO come back to this
+movw $STACK_ADDR, %bp
+movw %bp, %sp
 
-; set up stack
-;   TODO come back to this
-mov bp, STACK_ADDR
-mov sp, bp
-
-mov bx, STR_START
+movw $STR_START, %bx
 call PrintString16
 
-; target address for disk read (es:bx)
-mov ax, 0
-mov es, ax
-mov bx, BOOT1_ADDR
+# target address for disk read - es:bx
+movw $0, %ax
+movw %ax, %es
+movw $BOOT1_ADDR, %bx
 
-; BIOS read sector function
-mov ah, 0x02
-mov dl, [BOOT_DRIVE] ; drive number
-mov ch, 0 ; cylinder 0
-mov dh, 0 ; head 0
-mov cl, 2 ; sector # (sector idx starts at 1)
-mov al, BOOT1_SECTORS ; number of sectors to read
+# BIOS read sector function
+movb $0x02, %ah
+movb BOOT_DRIVE, %dl # drive number
+movb $0, %ch         # cylinder 0
+movb $0, %dh         # head 0
+movb $2, %cl         # sector number (sector idx starts at 1)
+movb $BOOT1_SECTORS, %al # number of sectors to read
 
-int 0x13
+int $0x13
 
-; Check for disk read error
+# Check for disk read error
 jc disk_error
-cmp al, BOOT1_SECTORS
+cmp $BOOT1_SECTORS, %al
 jne disk_error
 
-mov bx, STR_LOADED_BOOT
+movw $STR_LOADED_BOOT, %bx
 call PrintString16
 
-; Jump to BOOT1
+# Jump to BOOT1
 jmp BOOT1
 
-; jmp here forever
-jmp $
+jmp .
 
 disk_error:
-    mov bx, STR_DISK_ERR
+    movw $STR_DISK_ERROR, %bx
     call PrintString16
-    jmp $
+    jmp .
+
+BOOT_DRIVE:
+    .byte 0
+
+STR_START:
+    .ascii "Running boot sector 0.\n\r\0"
+STR_LOADED_BOOT:
+    .ascii "Loaded full boot sector.\n\r\0"
+STR_LOADED_KERNEL:
+    .ascii "Loaded kernel.\n\r\0"
+
+STR_DISK_ERROR:
+    .ascii "Disk read error.\n\r\0"
 
 PrintString16:
     pusha
-    mov ah, 0x0e
+    movb $0x0e, %ah
     pstr16_loop:
-        mov al, [bx]
-        add bx, 1
-        cmp al, 0
+        movb (%bx), %al
+        addw $1, %bx
+        cmp $0, %al
         je pstr16_done
-        int 0x10
+        int $0x10
         jmp pstr16_loop
 
     pstr16_done:
     popa
     ret
 
-; bx - address to print from
-; cx - number of bytes to print
-PrintHex16:
-    pusha
-    mov ah, 0x0e
-    ; cx bytes -> 2*cx ASCII characters
-    shl cx, 1
+# Naive way of padding until 510th byte.
+# Makes boot0 have to be < 256 bytes, which is fine I guess.
+# TODO: improve this?
+.balign 256, 0
+.space 254, 0
+.word 0xaa55
 
-    phex16_loop:
-        mov al, [bx]
-
-        mov si, cx
-        and si, 1
-        jz phex16_higher_bits
-        and al, 0x0f
-        inc bx
-        jmp phex16_digit_to_ascii
-        phex16_higher_bits:
-        shr al, 4
-        
-        phex16_digit_to_ascii:
-        cmp al, 10
-        jge phex16_digit_letter
-        ; 0x30 is ASCII 0
-        add al, 0x30
-        jmp phex16_digit_print
-
-        phex16_digit_letter:
-        ; 0x41 is ASCII A
-        add al, 0x41 - 10
-
-        phex16_digit_print:
-        int 0x10
-
-        dec cx
-        jz phex16_done
-
-        jmp phex16_loop
-
-    phex16_done:
-    popa
-    ret
-
-; ----- Global variables -----
-BOOT_DRIVE:
-db 0
-
-STR_START:
-db 'Running boot sector.', 0x0a, 0x0d, 0
-STR_LOADED_BOOT:
-db 'Loaded extended boot sector.', 0x0a, 0x0d, 0
-STR_LOADED_KERNEL:
-db 'Loaded kernel.', 0x0a, 0x0d, 0
-
-STR_DISK_ERR:
-db 'Disk read error.', 0x0a, 0x0d, 0
-
-STR_LFCR:
-db 0x0a, 0x0d, 0
-
-TESTHEX:
-dw 0xcafe, 0xcafe, 0xbabe, 0xface
-
-; pad file up until the 510th byte
-times 510 -( $ - $$ ) db 0
-
-dw 0xaa55
-
-; -----------------------------------------------------------------------------
-; ---------------------------- START OF 2ND SECTOR ----------------------------
-; -----------------------------------------------------------------------------
-KERNEL_ADDR     equ 0x1000
-KERNEL_SECTORS  equ 1
-CODE_SEG        equ gdt_code - gdt_start
-DATA_SEG        equ gdt_data - gdt_start
+/**
+ * ---------------------------------------------------------------------------
+ * --------------------------- START OF 2ND SECTOR ---------------------------
+ * ---------------------------------------------------------------------------
+*/
+.set KERNEL_ADDR,       0x1000
+.set KERNEL_SECTORS,    1
+.set CODE_SEG,          gdt_code - gdt_start
+.set DATA_SEG,          gdt_data - gdt_start
 
 BOOT1:
 
-; target address for disk read (es:bx)
-mov ax, 0
-mov es, ax
-mov bx, KERNEL_ADDR
+# target address for disk read (es:bx)
+movw $0, %ax
+movw %ax, %es
+movw $KERNEL_ADDR, %bx
 
-; BIOS read sector function
-mov ah, 0x02
-mov dl, [BOOT_DRIVE] ; drive number
-mov ch, 0 ; cylinder 0
-mov dh, 0 ; head 0
-mov cl, 3 ; sector # (sector idx starts at 1)
-mov al, KERNEL_SECTORS ; number of sectors to read
+# BIOS read sector function
+movb $0x02, %ah
+movb BOOT_DRIVE, %dl # drive number
+movb $0, %ch         # cylinder 0
+movb $0, %dh         # head 0
+movb $(2 + BOOT1_SECTORS), %cl # sector number (sector idx starts at 1)
+movb $KERNEL_SECTORS, %al # number of sectors to read
 
-int 0x13
+int $0x13
 
-; Check for disk read error
+# Check for disk read error
 jc disk_error
-cmp al, KERNEL_SECTORS
+cmp $KERNEL_SECTORS, %al
 jne disk_error
 
-mov bx, STR_LOADED_KERNEL
+mov $STR_LOADED_KERNEL, %bx
 call PrintString16
 
-; Register the GDT
-lgdt [gdt_descriptor]
-; Disable interrupts until we set them up for 32-bit mode
+# Register the GDT
+lgdt gdt_descriptor
+# Disable interrupts until we set them up for 32-bit mode
 cli
 
-; Switch to 32-bit mode by setting 1st bit of cr0
-mov eax, cr0
-or eax, 1
-mov cr0, eax
+# Switch to 32-bit mode by setting 1st bit of cr0
+mov %cr0, %eax
+or  $1, %eax
+mov %eax, %cr0
 
-; Issue a long jump to flush the processor instruction pipeline
-jmp CODE_SEG:protected_mode
+# Issue a long jump to flush the processor instruction pipeline
+# This ensures that the 32-bit code flag is truly set
+# jmp $CODE_SEG, protected_mode
+# TODO use long jump?
+jmp protected_mode
 
-; -- GDT --
+# -- GDT --
 gdt_start:
 
-; First entry of the GDT should be null, to catch errors
+# First entry of the GDT should be null, to catch errors
 gdt_null:
-dd 0
-dd 0
+.int 0
+.int 0
 
-; Code segment descriptor
-; base = 0, limit = 0xffff
+# Code segment descriptor
+# base = 0, limit = 0xffff
 gdt_code:
-dw 0xffff       ; limit (bits 0-15)
-dw 0            ; base  (bits 0-15)
-db 0            ; base  (bits 16-23)
-db 10011010b    ; 1(present) 00(privilege) 1(descriptor type)
-                ; 1(code) 0(conforming) 1(readable) 0(accessed)
-db 11001111b    ; 1(granularity) 1(32-bit default) 0(64-bit seg) 0(AVL)
-                ; limit (bits 16-19)
-db 0            ; base  (bits 24-31)
+.word 0xffff        # limit (bits 0-15)
+.word 0             # base  (bits 0-15)
+.byte 0             # base  (bits 16-23)
+.byte 0b10011010    # 1(present) 00(privilege) 1(descriptor type)
+                    # 1(code) 0(conforming) 1(readable) 0(accessed)
+.byte 0b11001111    # 1(granularity) 1(32-bit default) 0(64-bit seg) 0(AVL)
+                    # limit (bits 16-19)
+.byte 0             # base  (bits 24-31)
 
-; Data segment descriptor
-; base = 0, limit = 0xffff
+# Data segment descriptor
+# base = 0, limit = 0xffff
 gdt_data:
-dw 0xffff       ; limit (bits 0-15)
-dw 0            ; base  (bits 0-15)
-db 0            ; base  (bits 16-23)
-db 10010010b    ; 1(present) 00(privilege) 1(descriptor type)
-                ; 0(code) 1(expand-down) 1(writable) 0(accessed)
-db 11001111b    ; 1(granularity) 1(32-bit default) 0(64-bit seg) 0(AVL)
-                ; limit (bits 16-19)
-db 0            ; base  (bits 24-31)
+.word 0xffff        # limit (bits 0-15)
+.word 0             # base  (bits 0-15)
+.byte 0             # base  (bits 16-23)
+.byte 0b10010010    # 1(present) 00(privilege) 1(descriptor type)
+                    # 0(code) 1(expand-down) 1(writable) 0(accessed)
+.byte 0b11001111    # 1(granularity) 1(32-bit default) 0(64-bit seg) 0(AVL)
+                    # limit (bits 16-19)
+.byte 0             # base  (bits 24-31)
 
 gdt_end:
 
-; GDT descriptor
+# GDT descriptor
 gdt_descriptor:
-dw gdt_end - gdt_start - 1  ; Size
-dd gdt_start                ; Start
+.word gdt_end - gdt_start - 1   # Size
+.word gdt_start                 # Start
 
-; -- 32-bit section, protected mode --
-[bits 32]
-
-VIDEO_MEMORY        equ 0xb8000
-CHAR_WHITE_ON_BLACK equ 0x0f
+# -- 32-bit section, protected mode --
+.code32
 
 protected_mode:
 
-; Jump to the kernel code
+# Jump to the kernel code
 jmp KERNEL_ADDR
 
-jmp $
+jmp .
 
-; pad file up until the 1024th byte
-times 1024 -( $ - $$ ) db 0
+# pad file up until the 1024th byte
+.balign 1024, 0

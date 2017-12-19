@@ -61,10 +61,11 @@ static void PrintCharAtCursor(char c, char attr)
 void PrintString(const char* str)
 {
     const char* c = str;
-    /*while (*c != 0) {
+    while (*c != 0) {
         //PrintCharAtCursor(*c, ATTR_WHITE_ON_BLACK);
         c++;
-    }*/
+        break;
+    }
 
     char* videoMemory = (char*)0xb8000;
     *videoMemory = 'P';
