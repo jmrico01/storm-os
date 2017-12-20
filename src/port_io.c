@@ -4,7 +4,7 @@
 uint8 PortByteIn(uint16 port)
 {
     uint8 result;
-    __asm__("in %%dx , %%al"
+    asm ("inb %%dx , %%al"
         : "=a" (result)
         : "d" (port));
     
@@ -13,7 +13,7 @@ uint8 PortByteIn(uint16 port)
 
 void PortByteOut(uint16 port, uint8 byte)
 {
-    __asm__("out %%al, %%dx"
+    asm ("outb %%al, %%dx"
         :
         : "a" (byte),
           "d" (port));
@@ -22,7 +22,7 @@ void PortByteOut(uint16 port, uint8 byte)
 uint16 PortWordIn(uint16 port)
 {
     uint16 result;
-    __asm__("in %%dx, %%ax"
+    asm ("inw %%dx, %%ax"
         : "=a" (result)
         : "d" (port));
     
@@ -31,7 +31,7 @@ uint16 PortWordIn(uint16 port)
 
 void PortWordOut(uint16 port, uint16 word)
 {
-    __asm__("out %%ax, %%dx"
+    asm ("outw %%ax, %%dx"
         :
         : "a" (word),
           "d" (port));

@@ -6,10 +6,15 @@ void KernelMain()
     PrintString("Hello!\n\n\n");
     PrintString("Hiya");
     PrintString("... and hi again!\n\n\n\n\n\n\n\n\n\ncafe babe");
-    PrintString("\n\n\n\n\n\n\n\n\n\n\n\n\n\nboo\n");
+    PrintString("\ns\nc\nr\no\nl\nl\ni\nn\ng\n_\nt\ne\ns\nt\nboo!\n!!!!!");
 
-    while(i);
+    ClearScreen();
+    PrintString("Hi from the dark");
+
+    while(1);
 }
 
+#include "system.c"
 #include "port_io.c"
 #include "screen.c"
+#include "interrupt.c"
