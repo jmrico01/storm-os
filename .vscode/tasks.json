@@ -1,0 +1,53 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "group": "build",
+            "label": "build",
+            "type": "shell",
+            "command": "./scripts/compile.sh",
+            "presentation": {
+                "focus": false,
+                "panel": "shared",
+                "reveal": "always"
+            },
+            "problemMatcher": []
+        },
+        {
+            "group": "build",
+            "label": "build-clean",
+            "type": "shell",
+            "command": "./scripts/compile.sh clean",
+            "presentation": {
+                "focus": false,
+                "panel": "shared",
+                "reveal": "always"
+            },
+            "problemMatcher": []
+        },
+        {
+            "group": "build",
+            "label": "build-and-run",
+            "type": "shell",
+            "command": "./scripts/compile.sh && qemu-system-i386 ./build/os_image",
+            "presentation": {
+                "focus": true,
+                "panel": "shared",
+                "reveal": "always"
+            },
+            "problemMatcher": []
+        },
+        {
+            "group": "build",
+            "label": "build-and-debug",
+            "type": "shell",
+            "command": "./scripts/compile.sh && ./scripts/debug.sh",
+            "presentation": {
+                "focus": false,
+                "panel": "shared",
+                "reveal": "always"
+            },
+            "problemMatcher": []
+        },
+    ]
+}

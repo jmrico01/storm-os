@@ -10,12 +10,12 @@ struct IDTEntry {
                         // 6-5  privilege level called from
                         // 4-1  always set to 0b00110
     uint16  jmpAddrHi;  // Higher 16 bits of interrupt handler address.
-};
+} __attribute__((packed));
 
 struct IDTDescriptor {
     uint16 size;
     uint32 start;
-};
+} __attribute__((packed));
 
 void InitIDT();
 

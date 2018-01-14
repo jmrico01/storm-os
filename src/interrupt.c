@@ -14,7 +14,7 @@ void InitIDT()
 
     /*asm ("lidt %%eax"
         :
-        : "a" (idtDescriptor));*/
+        : "a" (&idtDescriptor));*/
 }
 
 void SetIDTEntry()
