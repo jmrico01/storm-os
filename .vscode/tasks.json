@@ -29,7 +29,7 @@
             "group": "build",
             "label": "build-and-run",
             "type": "shell",
-            "command": "./scripts/compile.sh && qemu-system-i386 ./build/os_image",
+            "command": "./scripts/compile.sh && qemu-system-i386 -drive format=raw,file=./build/os_image",
             "presentation": {
                 "focus": true,
                 "panel": "shared",

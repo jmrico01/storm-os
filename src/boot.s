@@ -19,7 +19,7 @@ movw %ax, %ss
 # BIOS stores boot drive in dl
 movb %dl, BOOT_DRIVE
 
-# set to normal (80x25 text) video mode
+# set video mode to 80x25 text
 movb $0, %ah
 movb $3, %al
 int	$0x10
@@ -69,14 +69,14 @@ BOOT_DRIVE:
     .byte 0
 
 STR_START:
-    .ascii "Running boot sector 0.\n\r\0"
+    .ascii "Running boot sector 0.\r\n\0"
 STR_LOADED_BOOT:
-    .ascii "Loaded full boot sector.\n\r\0"
+    .ascii "Loaded full boot sector.\r\n\0"
 STR_LOADED_KERNEL:
-    .ascii "Loaded kernel.\n\r\0"
+    .ascii "Loaded kernel.\r\n\0"
 
 STR_DISK_ERROR:
-    .ascii "Disk read error.\n\r\0"
+    .ascii "Disk read error.\r\n\0"
 
 PrintString16:
     pusha
@@ -134,6 +134,11 @@ jne disk_error
 
 mov $STR_LOADED_KERNEL, %bx
 call PrintString16
+
+# set video mode to graphic 640x480x4
+movb $0, %ah
+movb $0x12, %al
+int $0x10
 
 # Disable interrupts until we set them up for 32-bit mode
 cli
