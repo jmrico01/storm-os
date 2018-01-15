@@ -16,11 +16,18 @@
 #define CHAR_ROWS (VGA_HEIGHT / CHAR_SIZE)
 #define CHAR_COLS (VGA_WIDTH * VGA_PIXELS_PER_BYTE / CHAR_SIZE)
 
+struct CursorPos {
+    int row;
+    int col;
+} cursorPos;
+
 uint16 planeMasks[VGA_PLANES] = { 0x0102, 0x0202, 0x0402, 0x0802 };
 
 uint8 screenBuf[VGA_WIDTH * VGA_HEIGHT * VGA_PLANES];
 
-static void DrawChar(char c, int row, int col, const uint8** font)
+enum Color lastClearColor;
+
+static void DrawCharAt(char c, int row, int col, const uint8 font[128][8])
 {
     // TODO maybe do these checks somewhere less critical
     if (c < 0) {
@@ -34,19 +41,61 @@ static void DrawChar(char c, int row, int col, const uint8** font)
     }
 
     const uint8* fontChar = font[(int)c];
-    int start = row * CHAR_SIZE + col;
+    int start = row * CHAR_SIZE * VGA_WIDTH + col;
     for (int p = 0; p < VGA_PLANES; p++) {
-        int offset = p * VGA_WIDTH * VGA_HEIGHT + start;
+        int offset = start + p * VGA_WIDTH * VGA_HEIGHT;
         for (int i = 0; i < CHAR_SIZE; i++) {
-            screenBuf[offset] = fontChar[i];
+            screenBuf[offset] |= reverseBits[fontChar[i]];
             offset += VGA_WIDTH;
         }
     }
+}
 
-    for (int i = 0; i < VGA_WIDTH; i++) {
-        screenBuf[i] = 0xff;
-        screenBuf[i + VGA_WIDTH * 10] = 0xff;
+void MoveCursor(int dRow, int dCol)
+{
+    cursorPos.row += dRow;
+    if (cursorPos.row >= CHAR_ROWS) {
+        cursorPos.row = CHAR_ROWS - 1;
+        uint8 planeColor[VGA_PLANES] = { 0, 0, 0, 0 };
+        for (int p = 0; p < VGA_PLANES; p++) {
+            if ((lastClearColor & (0x1 << p)) != 0) {
+                planeColor[p] = 0xff;
+            }
+        }
+        for (int p = 0; p < VGA_PLANES; p++) {
+            uint8* buf = screenBuf + p * VGA_WIDTH + VGA_HEIGHT;
+            MemCopy(buf, buf + VGA_WIDTH * CHAR_SIZE,
+                VGA_WIDTH * VGA_HEIGHT - VGA_WIDTH * CHAR_SIZE);
+            MemSet(buf + VGA_WIDTH * VGA_HEIGHT - VGA_WIDTH * CHAR_SIZE,
+                planeColor[p], VGA_WIDTH * CHAR_SIZE);
+        }
     }
+
+    cursorPos.col += dCol;
+    if (cursorPos.col >= CHAR_COLS) {
+        MoveCursor(1, -cursorPos.col);
+    }
+}
+
+void PutChar(char c)
+{
+    if (c == '\n') {
+        MoveCursor(1, -cursorPos.col);
+    }
+    else {
+        DrawCharAt(c, cursorPos.row, cursorPos.col, fontBasic);
+        MoveCursor(0, 1);
+    }
+}
+
+void PutStr(const char* str)
+{
+    while (*str != 0) {
+        PutChar(*str);
+        str++;
+    }
+
+    DisplayBuffer(screenBuf);
 }
 
 void DisplayBuffer(const uint8* buf)
@@ -73,17 +122,16 @@ void ClearScreen(enum Color color)
         }
     }
 
-    MemSet(screenBuf, 0, VGA_WIDTH * VGA_HEIGHT * VGA_PLANES);
-
     PortWordOut(0x3ce, 0x5);
     for (int p = 0; p < VGA_PLANES; p++) {
         PortWordOut(0x3c4, planeMasks[p]);
+        MemSet(screenBuf + p * VGA_WIDTH * VGA_HEIGHT,
+            planeColor[p], VGA_WIDTH * VGA_HEIGHT);
         MemSet(screen, planeColor[p], VGA_WIDTH * VGA_HEIGHT);
     }
     PortWordOut(0x3c4, 0x0f02);
 
-    DrawChar('A', 5, 5, (const uint8**)fontBasic);
-    DisplayBuffer((const uint8*)screenBuf);
+    lastClearColor = color;
 }
 
 #if 0

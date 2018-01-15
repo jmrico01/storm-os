@@ -7,15 +7,19 @@ uint8 kernelStack[4096];
 
 void KernelMain()
 {
-    ClearScreen(COLOR_MAGENTA);
-    /*PrintString("Hello, sailor\n");
-    PrintString("Hello!\n\n\n");
-    PrintString("Hiya");
-    PrintString("... and hi again!\n\n\n\n\n\n\n\n\n\ncafe babe");
-    PrintString("\ns\nc\nr\no\nl\nl\ni\nn\ng\n_\nt\ne\ns\nt\nboo!\n!!!!!");
+    ClearScreen(COLOR_BLUE);
+    PutStr("Hello, sailor\n\n\n...hi? yes");
+    PutStr("Hello, sailor\n");
+    PutStr("Hello!\n\n\n");
+    PutStr("Hiya");
+    PutStr("... and hi again!\n\n\n\n\n\n\n\n\n\ncafe babe");
+    PutStr("\ns\nc\nr\no\nl\nl\ni\nn\ng\n \nt\ne\ns\nt\nboo!\n!!!!!");
+    PutStr("now scrolling forever\n\n\n\n\n\n\n\n\n\n\n\n");
+    PutStr("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+    PutStr("done");
 
-    ClearScreen();
-    PrintString("Hi from the dark");*/
+    //ClearScreen(COLOR_BLACK);
+    //PutStr("Hi from the dark");
 
     while (1) {}
 }

@@ -21,7 +21,7 @@ enum Color {
     COLOR_WHITE     = 0b1111
 };
 
-void PrintStr(const char* str);
+void PutStr(const char* str);
 
 void DisplayBuffer(const uint8* buf);
 void ClearScreen(enum Color color);
