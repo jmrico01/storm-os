@@ -82,9 +82,8 @@ void ClearScreen(enum Color color)
     }
     PortWordOut(0x3c4, 0x0f02);
 
-    //DrawChar('A', 5, 5, (const uint8**)fontBasic);
-    /*MemSet(screenBuf, 0xff, VGA_WIDTH * VGA_HEIGHT);
-    DisplayBuffer((const uint8*)screenBuf);*/
+    DrawChar('A', 5, 5, (const uint8**)fontBasic);
+    DisplayBuffer((const uint8*)screenBuf);
 }
 
 #if 0

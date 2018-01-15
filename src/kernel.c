@@ -3,6 +3,8 @@
 
 #include "port_io.h"
 
+uint8 kernelStack[4096];
+
 void KernelMain()
 {
     ClearScreen(COLOR_MAGENTA);

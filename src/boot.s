@@ -3,12 +3,20 @@
  * --------------------------- START OF 1ST SECTOR ---------------------------
  * ---------------------------------------------------------------------------
 */
-.code16
 
 .set BOOT0_ADDR,    0x7c00
 .set BOOT1_ADDR,    0x7e00
 .set BOOT1_SECTORS, 1
 .set STACK_ADDR,    BOOT0_ADDR
+
+.set SECTOR_SIZE,   512
+
+.globl start
+start:
+
+.code16
+cli
+cld
 
 # clear segment registers
 xorw %ax, %ax
@@ -72,8 +80,6 @@ STR_START:
     .ascii "Running boot sector 0.\r\n\0"
 STR_LOADED_BOOT:
     .ascii "Loaded full boot sector.\r\n\0"
-STR_LOADED_KERNEL:
-    .ascii "Loaded kernel.\r\n\0"
 
 STR_DISK_ERROR:
     .ascii "Disk read error.\r\n\0"
@@ -105,43 +111,35 @@ PrintString16:
  * --------------------------- START OF 2ND SECTOR ---------------------------
  * ---------------------------------------------------------------------------
 */
-.set KERNEL_ADDR,       0x1000
-.set KERNEL_SECTORS,    16
+.set KERNEL_ADDR,       0x100000
+.set KERNEL_START,      2
+.set KERNEL_SECTORS,    32
 .set CODE_SEG,          0x08
 .set DATA_SEG,          0x10
 
 BOOT1:
 
-# target address for disk read (es:bx)
-movw $0, %ax
-movw %ax, %es
-movw $KERNEL_ADDR, %bx
-
-# BIOS read sector function
-movb $0x02, %ah
-movb BOOT_DRIVE, %dl # drive number
-movb $0, %ch         # cylinder 0
-movb $0, %dh         # head 0
-movb $(2 + BOOT1_SECTORS), %cl # sector number (sector idx starts at 1)
-movb $KERNEL_SECTORS, %al # number of sectors to read
-
-int $0x13
-
-# Check for disk read error
-jc disk_error
-cmp $KERNEL_SECTORS, %al
-jne disk_error
-
-mov $STR_LOADED_KERNEL, %bx
-call PrintString16
+# enable A20 (copied from assignments)
+seta20.1:
+inb	$0x64, %al
+testb	$0x2, %al
+jnz	seta20.1
+movb	$0xd1, %al
+outb	%al, $0x64
+seta20.2:
+inb	$0x64, %al
+testb	$0x2, %al
+jnz	seta20.2
+movb	$0xdf, %al
+outb	%al, $0x60
 
 # set video mode to graphic 640x480x4
-# movb $0, %ah
-# movb $0x12, %al
-# int $0x10
+movb $0, %ah
+movb $0x12, %al
+int $0x10
 
 # Disable interrupts until we set them up for 32-bit mode
-cli
+# cli
 # Register the GDT
 lgdt gdt_descriptor
 
@@ -150,7 +148,7 @@ movl %cr0, %eax
 orl  $1, %eax
 movl %eax, %cr0
 
-# Issue a long jump to flush the processor instruction pipeline
+# Issue a long jump to flush the CPU instruction pipeline
 # This ensures that the 32-bit code flag is truly set
 ljmp $CODE_SEG, $protected_mode
 
@@ -201,10 +199,87 @@ gdt_descriptor:
 
 protected_mode:
 
+movw $DATA_SEG, %ax
+movw	%ax, %ds
+movw	%ax, %es
+movw	%ax, %fs
+movw	%ax, %gs
+movw	%ax, %ss
+
+# Load kernel into KERNEL_ADDR, sector by sector
+movl $KERNEL_START, %eax
+movl $KERNEL_ADDR, %edi
+
+read_sector:
+call ReadSectorLBA
+addl $1, %eax
+addl $SECTOR_SIZE, %edi
+cmp $KERNEL_SECTORS, %eax
+jl read_sector
+
 # Jump to the kernel code
 jmp KERNEL_ADDR
 
 jmp .
+
+# eax: logical block address
+# edi: address of buffer to write data to
+ReadSectorLBA:
+    pusha
+    # Save LBA in ebx
+    movl %eax, %ebx
+
+    # Send bits 24-27 of LBA + some stuff (flags? "drive"?)
+    movw $0x1f6, %dx
+    shrl $24, %eax
+    orb $0b11100000, %al
+    outb %al, %dx
+
+    # Send number of sectors
+    movw $0x1f2, %dx
+    movb $1, %al
+    outb %al, %dx
+
+    # Send bits 0-7 of LBA
+    movw $0x1f3, %dx
+    movl %ebx, %eax
+    outb %al, %dx
+
+    # Send bits 8-15 of LBA
+    movw $0x1f4, %dx
+    movl %ebx, %eax
+    shrl $8, %eax
+    outb %al, %dx
+
+    # Send bits 16-23 of LBA
+    movw $0x1f5, %dx
+    movl %ebx, %eax
+    shrl $16, %eax
+    outb %al, %dx
+
+    # Send command read with retry
+    movw $0x1f7, %dx
+    movb $0x20, %al
+    outb %al, %dx
+
+    readlba_wait:
+    inb %dx, %al
+    testb $8, %al
+    jz readlba_wait
+
+    # 256 words = 1 sector
+    mov $(SECTOR_SIZE / 2), %eax
+    # Multiply %eax by # of sectors to read
+    # xor %ebx, %ebx
+    # mov %cl, %bl
+    # mul %ebx
+
+    mov %eax, %ecx
+    mov $0x1f0, %edx
+    rep insw
+
+    popa
+    ret
 
 # pad file up until the 1024th byte
 .balign 1024, 0
