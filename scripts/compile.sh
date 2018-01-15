@@ -20,7 +20,7 @@ fi
 
 pushd $BUILD_DIR > /dev/null
 
-# Assemble boot sector code
+# Assemble boot loader code
 as $AS_FLAGS "$SRC_DIR/boot.s" -o boot.o
 ld $LD_FLAGS boot.o -Ttext 0x7c00 -o boot.elf
 objcopy --only-keep-debug boot.elf boot.sym
@@ -39,7 +39,6 @@ objcopy -S -O binary kernel.elf kernel.bin
 rm -f kernel.elf
 
 
-
 dd if=/dev/zero of=kernel.bin bs=1 count=1 seek=$((512*16 - 1))
 
 # Create disk image
@@ -47,7 +46,7 @@ cat boot.bin kernel.bin > os_image
 
 # Hacky way of combining debug symbols
 # ...somehow it works!
-# nevermind, it doesnt. loads the first one only
+# nevermind, it doesn't. loads the first one only
 #cat boot.sym kernel.sym > os_image.sym
 
 popd > /dev/null

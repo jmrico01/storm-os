@@ -10,16 +10,17 @@
 // screen height in scan lines
 #define VGA_HEIGHT 480
 #define VGA_PIXELS_PER_BYTE 8
-#define PLANES 4
+#define VGA_PLANES 4
 
-#define CHAR_ROWS (VGA_HEIGHT / 8)
-#define CHAR_COLS (VGA_WIDTH * VGA_PIXELS_PER_BYTE / 8)
+#define CHAR_SIZE 8
+#define CHAR_ROWS (VGA_HEIGHT / CHAR_SIZE)
+#define CHAR_COLS (VGA_WIDTH * VGA_PIXELS_PER_BYTE / CHAR_SIZE)
 
-uint16 planeMasks[PLANES] = { 0x0102, 0x0202, 0x0402, 0x0802 };
+uint16 planeMasks[VGA_PLANES] = { 0x0102, 0x0202, 0x0402, 0x0802 };
 
-uint8 screenBuf[VGA_WIDTH * VGA_HEIGHT * PLANES];
+uint8 screenBuf[VGA_WIDTH * VGA_HEIGHT * VGA_PLANES];
 
-static void DrawCharAt(char c, int row, int col, uint8** font)
+static void DrawChar(char c, int row, int col, const uint8** font)
 {
     // TODO maybe do these checks somewhere less critical
     if (c < 0) {
@@ -32,16 +33,29 @@ static void DrawCharAt(char c, int row, int col, uint8** font)
         return;
     }
 
-    uint8* screen = (uint8*)VGA_ADDRESS;
+    const uint8* fontChar = font[(int)c];
+    int start = row * CHAR_SIZE + col;
+    for (int p = 0; p < VGA_PLANES; p++) {
+        int offset = p * VGA_WIDTH * VGA_HEIGHT + start;
+        for (int i = 0; i < CHAR_SIZE; i++) {
+            screenBuf[offset] = fontChar[i];
+            offset += VGA_WIDTH;
+        }
+    }
+
+    for (int i = 0; i < VGA_WIDTH; i++) {
+        screenBuf[i] = 0xff;
+        screenBuf[i + VGA_WIDTH * 10] = 0xff;
+    }
 }
 
-void DisplayBuffer(uint8* buf)
+void DisplayBuffer(const uint8* buf)
 {
     uint8* screen = (uint8*)VGA_ADDRESS;
 
     PortWordOut(0x3ce, 0x5);
-    for (int p = 0; p < PLANES; p++) {
-        uint8* planeBuf = buf + p * VGA_WIDTH * VGA_HEIGHT;
+    for (int p = 0; p < VGA_PLANES; p++) {
+        const uint8* planeBuf = buf + p * VGA_WIDTH * VGA_HEIGHT;
         PortWordOut(0x3c4, planeMasks[p]);
         MemCopy(screen, planeBuf, VGA_WIDTH * VGA_HEIGHT);
     }
@@ -52,19 +66,25 @@ void ClearScreen(enum Color color)
 {
     uint8* screen = (uint8*)VGA_ADDRESS;
 
-    uint8 planeColor[PLANES] = { 0, 0, 0, 0 };
-    for (int p = 0; p < PLANES; p++) {
+    uint8 planeColor[VGA_PLANES] = { 0, 0, 0, 0 };
+    for (int p = 0; p < VGA_PLANES; p++) {
         if ((color & (0x1 << p)) != 0) {
             planeColor[p] = 0xff;
         }
     }
 
+    MemSet(screenBuf, 0, VGA_WIDTH * VGA_HEIGHT * VGA_PLANES);
+
     PortWordOut(0x3ce, 0x5);
-    for (int p = 0; p < PLANES; p++) {
+    for (int p = 0; p < VGA_PLANES; p++) {
         PortWordOut(0x3c4, planeMasks[p]);
         MemSet(screen, planeColor[p], VGA_WIDTH * VGA_HEIGHT);
     }
     PortWordOut(0x3c4, 0x0f02);
+
+    //DrawChar('A', 5, 5, (const uint8**)fontBasic);
+    /*MemSet(screenBuf, 0xff, VGA_WIDTH * VGA_HEIGHT);
+    DisplayBuffer((const uint8*)screenBuf);*/
 }
 
 #if 0

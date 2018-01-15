@@ -23,7 +23,7 @@ enum Color {
 
 void PrintStr(const char* str);
 
-void DisplayBuffer(uint8* buf);
+void DisplayBuffer(const uint8* buf);
 void ClearScreen(enum Color color);
 
 #endif

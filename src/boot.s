@@ -136,9 +136,9 @@ mov $STR_LOADED_KERNEL, %bx
 call PrintString16
 
 # set video mode to graphic 640x480x4
-movb $0, %ah
-movb $0x12, %al
-int $0x10
+# movb $0, %ah
+# movb $0x12, %al
+# int $0x10
 
 # Disable interrupts until we set them up for 32-bit mode
 cli

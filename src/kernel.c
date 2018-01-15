@@ -5,7 +5,7 @@
 
 void KernelMain()
 {
-    ClearScreen(COLOR_RED);
+    ClearScreen(COLOR_MAGENTA);
     /*PrintString("Hello, sailor\n");
     PrintString("Hello!\n\n\n");
     PrintString("Hiya");
@@ -15,7 +15,7 @@ void KernelMain()
     ClearScreen();
     PrintString("Hi from the dark");*/
 
-    while(1);
+    while (1) {}
 }
 
 #include "system.c"
