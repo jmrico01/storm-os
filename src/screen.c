@@ -45,7 +45,8 @@ static void PaintRange(int start, int size, enum Color color)
     }
 }
 
-void DrawCharAt(char c, int row, int col, const uint8 font[128][8])
+void DrawCharAt(char c, int row, int col,
+    const uint8 font[128][8], enum Color color)
 {
     // TODO maybe do these checks somewhere less critical
     if (c < 0) {
@@ -58,12 +59,33 @@ void DrawCharAt(char c, int row, int col, const uint8 font[128][8])
         return;
     }
 
+    uint8 planeColor[VGA_PLANES] = { 0, 0, 0, 0 };
+    for (int p = 0; p < VGA_PLANES; p++) {
+        if ((color & (0x1 << p)) != 0) {
+            planeColor[p] = 0xff;
+        }
+    }
+    uint8 planeClearColor[VGA_PLANES] = { 0, 0, 0, 0 };
+    for (int p = 0; p < VGA_PLANES; p++) {
+        if ((lastClearColor & (0x1 << p)) != 0) {
+            planeClearColor[p] = 0xff;
+        }
+    }
+
     const uint8* fontChar = font[(int)c];
     int start = row * CHAR_SIZE * VGA_WIDTH + col;
     for (int p = 0; p < VGA_PLANES; p++) {
         int offset = start + p * VGA_WIDTH * VGA_HEIGHT;
         for (int i = 0; i < CHAR_SIZE; i++) {
-            screenBuf[offset] |= reverseBits[fontChar[i]];
+            if (c == '\b') {
+                screenBuf[offset] = planeClearColor[p];
+            }
+            else {
+                screenBuf[offset] &= ~reverseBits[fontChar[i]];
+                screenBuf[offset] |= reverseBits[fontChar[i]] & planeColor[p];
+                /*screenBuf[offset] = (screenBuf[offset]
+                    & (~reverseBits[fontChar[i]])) | planeColor[p];*/
+            }
             offset += VGA_WIDTH;
         }
     }

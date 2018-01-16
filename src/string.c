@@ -1,20 +1,29 @@
 #include "string.h"
 
-int StrCmpN(const char *str1, const char *str2, uint32 size)
+int StringCmp(const char* str1, const char* str2)
 {
-	while (size > 0 && *str1 && *str1 == *str2) {
-		size--, str1++, str2++;
+    while (*str1 && *str1 == *str2) {
+        str1++, str2++;
     }
 
-	if (size == 0){
+    return (int)((unsigned char)*str1 - (unsigned char)*str2);
+}
+
+int StringCmpN(const char* str1, const char* str2, uint32 size)
+{
+    while (size > 0 && *str1 && *str1 == *str2) {
+        size--, str1++, str2++;
+    }
+
+    if (size == 0) {
         return 0;
     }
     else {
-		return (int) ((unsigned char) *str1 - (unsigned char) *str2);
+        return (int)((unsigned char)*str1 - (unsigned char)*str2);
     }
 }
 
-int StrLenN(const char *str, uint32 size)
+int StringLenN(const char* str, uint32 size)
 {
     int n;
 	for (n = 0; size > 0 && *str != '\0'; str++, size--) {
@@ -22,6 +31,17 @@ int StrLenN(const char *str, uint32 size)
     }
 
 	return n;
+}
+
+char* StringFindChar(const char* str, char c)
+{
+    for (; *str; str++) {
+        if (*str == c) {
+            return (char*)str;
+        }
+    }
+
+    return 0;
 }
 
 /*int StrCmp(const char *str1, const char *str2)

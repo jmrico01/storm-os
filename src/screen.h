@@ -20,19 +20,21 @@ enum Color {
     COLOR_RED       = 0b0100,
     COLOR_GREEN     = 0b0010,
     COLOR_BLUE      = 0b0001,
-    COLOR_BROWN     = 0b0110,
-    COLOR_CYAN      = 0b0011,
-    COLOR_MAGENTA   = 0b0101,
     COLOR_BRED      = 0b1100,
     COLOR_BGREEN    = 0b1010,
     COLOR_BBLUE     = 0b1001,
+    COLOR_BROWN     = 0b0110,
+    COLOR_MAGENTA   = 0b0101,
+    COLOR_CYAN      = 0b0011,
     COLOR_YELLOW    = 0b1110,
-    COLOR_BCYAN     = 0b1011,
     COLOR_BMAGENTA  = 0b1101,
+    COLOR_BCYAN     = 0b1011,
+    COLOR_BGREY     = 0b0111,
     COLOR_WHITE     = 0b1111
 };
 
-void DrawCharAt(char c, int row, int col, const uint8 font[128][8]);
+void DrawCharAt(char c, int row, int col,
+    const uint8 font[128][8], enum Color color);
 // Scrolls the screen down by the given number of rows (pixels)
 void ScrollScreen(int rows);
 

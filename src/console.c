@@ -63,25 +63,25 @@ int GetChar()
     return 0;
 }
 
-void PutChar(char c)
+void PutChar(char c, enum Color color)
 {
     if (c == '\n') {
         MoveCursor(1, -cursorPos.col);
     }
     else if (c == '\b') {
         MoveCursor(0, -1);
-        DrawCharAt(' ', cursorPos.row, cursorPos.col, fontBasic);
+        DrawCharAt('\b', cursorPos.row, cursorPos.col, fontBasic, color);
     }
     else {
-        DrawCharAt(c, cursorPos.row, cursorPos.col, fontBasic);
+        DrawCharAt(c, cursorPos.row, cursorPos.col, fontBasic, color);
         MoveCursor(0, 1);
     }
 }
 
-void PutStr(const char* str)
+void PutStr(const char* str, enum Color color)
 {
     while (*str != 0) {
-        PutChar(*str);
+        PutChar(*str, color);
         str++;
     }
 

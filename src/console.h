@@ -6,8 +6,8 @@
 void ConsoleInit();
 
 int GetChar();
-void PutChar(char c);
-void PutStr(const char* str);
+void PutChar(char c, enum Color color);
+void PutStr(const char* str, enum Color color);
 void ResetCursor();
 
 #endif

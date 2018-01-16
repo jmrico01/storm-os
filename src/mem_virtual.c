@@ -157,10 +157,10 @@ static void EnablePaging()
     SetCR4(cr4);
 
     // Turn on paging
-    /*uint32 cr0 = GetCR0();
+    uint32 cr0 = GetCR0();
     cr0 |= CR0_PE | CR0_PG | CR0_AM | CR0_WP | CR0_NE | CR0_MP;
     cr0 &= ~(CR0_EM | CR0_TS);
-    SetCR0(cr0);*/
+    SetCR0(cr0);
 }
 
 void VirtualMemoryInit()
@@ -177,7 +177,7 @@ void VirtualMemoryInit()
             perm = PTE_P | PTE_W | PTE_G;
         }
 
-        for (uint32 j = 0; i < NUM_TABLES; i++) {
+        for (uint32 j = 0; j < NUM_TABLES; j++) {
             pageDirIdentity[i][j] = (i * NUM_TABLES + j) * PAGESIZE + perm;
         }
     }

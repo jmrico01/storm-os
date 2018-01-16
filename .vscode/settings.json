@@ -5,6 +5,8 @@
         "console.h": "c",
         "gcc.h": "c",
         "thread.h": "c",
-        "mem_physical.h": "c"
+        "mem_physical.h": "c",
+        "screen.h": "c",
+        "monitor.h": "c"
     }
 }

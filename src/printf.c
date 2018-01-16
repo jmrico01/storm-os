@@ -12,12 +12,14 @@ struct PrintBuf
     char buf[CONSOLE_BUFFER_SIZE];
 };
 
-static void PrintfPutCh(int ch, struct PrintBuf* buf)
+enum Color textColor = COLOR_WHITE;
+
+static void PrintfPutCh(int ch, enum Color color, struct PrintBuf* buf)
 {
     buf->buf[buf->index++] = (char)ch;
     if (buf->index >= CONSOLE_BUFFER_SIZE - 1) {
         buf->buf[buf->index] = 0;
-        PutStr(buf->buf);
+        PutStr(buf->buf, color);
         buf->index = 0;
     }
     buf->count++;
@@ -27,23 +29,22 @@ static void PrintfPutCh(int ch, struct PrintBuf* buf)
  * Print a positive number (base <= 16) in reverse order,
  * using specified putCh function and associated pointer putData.
  */
-static void
-PrintNum(
-    void (*putCh)(int, void*), void *putData,
-    uint64 num, int base)
+static void PrintNum(
+    void (*putCh)(int, enum Color, void*), void *putData,
+    enum Color color, uint64 num, int base)
 {
 	// first recursively print all preceding (more significant) digits
 	if (num >= (uint64)base) {
-		PrintNum(putCh, putData, Divide64by32(num, (uint32)base), base);
+		PrintNum(putCh, putData, color, Divide64by32(num, (uint32)base), base);
 	}
 
 	// then print this (the least significant) digit
-	putCh("0123456789abcdef"[Modulo64by32(num, (uint32)base)], putData);
+	putCh("0123456789abcdef"[Modulo64by32(num, (uint32)base)], color, putData);
 }
 
 static void VPrintFmt(
-    void (*putCh)(int, void*), void *putData,
-    const char *fmt, va_list ap)
+    void (*putCh)(int, enum Color, void*), void *putData,
+    enum Color color, const char *fmt, va_list ap)
 {
     int ch;
     const char* p;
@@ -55,14 +56,14 @@ static void VPrintFmt(
 			if (ch == '\0') {
                 return;
             }
-			putCh(ch, putData);
+			putCh(ch, color, putData);
 		}
 
 		// Process a %-escape sequence
 		switch (ch = *(unsigned char *) fmt++) {
             // character
             case 'c': {
-                putCh(va_arg(ap, int), putData);
+                putCh(va_arg(ap, int), color, putData);
                 break;
             }
 
@@ -72,7 +73,7 @@ static void VPrintFmt(
                     p = "(null)";
                 }
                 while ((ch = *p++) != '\0') {
-                    putCh(ch, putData);
+                    putCh(ch, color, putData);
                 }
                 break;
             }
@@ -81,11 +82,11 @@ static void VPrintFmt(
             case 'd': {
                 int numSigned = va_arg(ap, int);
                 if (numSigned < 0) {
-                    putCh('-', putData);
+                    putCh('-', color, putData);
                     numSigned = -numSigned;
                 }
                 base = 10;
-                PrintNum(putCh, putData, (uint64)numSigned, base);
+                PrintNum(putCh, putData, color, (uint64)numSigned, base);
                 break;
             }
 
@@ -93,7 +94,7 @@ static void VPrintFmt(
             case 'u': {
                 num = va_arg(ap, unsigned int);
                 base = 10;
-                PrintNum(putCh, putData, num, base);
+                PrintNum(putCh, putData, color, num, base);
                 break;
             }
 
@@ -101,7 +102,7 @@ static void VPrintFmt(
             case 'l': {
                 num = va_arg(ap, uint64);
                 base = 16;
-                PrintNum(putCh, putData, num, base);
+                PrintNum(putCh, putData, color, num, base);
                 break;
             }
 
@@ -109,7 +110,7 @@ static void VPrintFmt(
             case 'o': {
                 num = va_arg(ap, unsigned int);
                 base = 8;
-                PrintNum(putCh, putData, num, base);
+                PrintNum(putCh, putData, color, num, base);
                 break;
             }
 
@@ -117,9 +118,9 @@ static void VPrintFmt(
             case 'p': {
                 num = (uint32)va_arg(ap, void*);
                 base = 16;
-                putCh('0', putData);
-                putCh('x', putData);
-                PrintNum(putCh, putData, num, base);
+                putCh('0', color, putData);
+                putCh('x', color, putData);
+                PrintNum(putCh, putData, color, num, base);
                 break;
             }
 
@@ -127,18 +128,18 @@ static void VPrintFmt(
             case 'x': {
                 num = va_arg(ap, unsigned int);
                 base = 16;
-                PrintNum(putCh, putData, num, base);
+                PrintNum(putCh, putData, color, num, base);
                 break;
             }
 
             // escaped '%' character
             case '%':
-                putCh(ch, putData);
+                putCh(ch, color, putData);
                 break;
 
             // unrecognized escape sequence - just print it literally
             default:
-                putCh('%', putData);
+                putCh('%', color, putData);
                 for (fmt--; fmt[-1] != '%'; fmt--)
                     /* do nothing */;
                 break;
@@ -146,16 +147,16 @@ static void VPrintFmt(
 	}
 }
 
-int VPrintf(const char *fmt, va_list ap)
+int VPrintf(enum Color color, const char *fmt, va_list ap)
 {
     struct PrintBuf buf;
 
     buf.index = 0;
     buf.count = 0;
-    VPrintFmt((void*)PrintfPutCh, &buf, fmt, ap);
+    VPrintFmt((void*)PrintfPutCh, &buf, color, fmt, ap);
 
     buf.buf[buf.index] = 0;
-    PutStr(buf.buf);
+    PutStr(buf.buf, color);
 
     return buf.count;
 }
@@ -166,8 +167,25 @@ int Printf(const char *fmt, ...)
     int count;
 
     va_start(ap, fmt);
-    count = VPrintf(fmt, ap);
+    count = VPrintf(textColor, fmt, ap);
     va_end(ap);
 
     return count;
+}
+
+int PrintfColor(enum Color color, const char *fmt, ...)
+{
+    va_list ap;
+    int count;
+
+    va_start(ap, fmt);
+    count = VPrintf(color, fmt, ap);
+    va_end(ap);
+
+    return count;
+}
+
+void SetTextColor(enum Color color)
+{
+    textColor = color;
 }
