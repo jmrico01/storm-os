@@ -1,30 +1,61 @@
-#include "types.h"
 #include "screen.h"
+#include "console.h"
+#include "mem_physical.h"
+#include "mem_virtual.h"
+#include "thread.h"
+#include "printf.h"
 
-#include "port_io.h"
-
-uint8 kernelStack[4096];
-
-void KernelMain()
+void KernelMain(struct SMAP* smap)
 {
+    ClearScreen(COLOR_BLACK);
+    Printf("Entered kernel\n\n");
+
+    PhysicalMemoryInit(smap);
+    VirtualMemoryInit();
+    ThreadInit();
+
+    int ch;
+    while (1) {
+        ch = GetChar();
+        if (ch != 0) {
+            PutChar((char)ch);
+            FlushBuffer();
+        }
+    }
+
+    while (1);
     ClearScreen(COLOR_BLUE);
-    PutStr("Hello, sailor\n\n\n...hi? yes");
-    PutStr("Hello, sailor\n");
-    PutStr("Hello!\n\n\n");
-    PutStr("Hiya");
-    PutStr("... and hi again!\n\n\n\n\n\n\n\n\n\ncafe babe");
-    PutStr("\ns\nc\nr\no\nl\nl\ni\nn\ng\n \nt\ne\ns\nt\nboo!\n!!!!!");
-    PutStr("now scrolling forever\n\n\n\n\n\n\n\n\n\n\n\n");
-    PutStr("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
-    PutStr("done");
+    Printf("Hello, sailor\n\n\n...hi? yes %d", 1125);
+    Printf("Hello, sailor hex %x\n", 0xcafebabe);
+    Printf("Hello!\n\n\n");
+    Printf("Hiya ");
+    Printf("... hi again!\n\n\n\n\n\n\n\n\n\ncafe babe");
+    Printf("\ns\nc\nr\no\nl\nl\ni\nn\ng\n \nt\ne\ns\nt\nboo!\n!!!!!");
+    Printf("now scrolling forever\n\n\n\n\n\n\n\n\n\n\n\n");
+    Printf("64-bit number incoming!!!!! %l\n", 0xdeafcafebabeface);
+    //Printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+    Printf("done\n");
+    Printf("...really, I'm done %s\n", "...except for this hidden message\n");
+    Printf("Symbols: !@#$%^&*()-=_+\\][|}{';\":/.,?><\n\n");
+    Printf("Now testing backspace\b\bd\n");
 
-    //ClearScreen(COLOR_BLACK);
-    //PutStr("Hi from the dark");
+    /*ClearScreen(COLOR_BLACK);
+    ResetCursor();
+    Printf("Hi from the dark");*/
 
-    while (1) {}
+    while (1);
 }
 
 #include "system.c"
+#include "x86.c"
 #include "port_io.c"
+#include "mem_physical.c"
+#include "mem_virtual.c"
+#include "thread.c"
+
+#include "string.c"
 #include "screen.c"
+#include "console.c"
+#include "keyboard.c"
+#include "printf.c"
 #include "interrupt.c"

@@ -1,5 +1,10 @@
 {
     "files.associations": {
-        "port_io.h": "c"
+        "port_io.h": "c",
+        "keyboard.h": "c",
+        "console.h": "c",
+        "gcc.h": "c",
+        "thread.h": "c",
+        "mem_physical.h": "c"
     }
 }

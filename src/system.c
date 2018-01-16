@@ -2,6 +2,11 @@
 
 // TODO big-deal functions: make them faster
 
+void MemZero(void* dst, uint32 size)
+{
+    MemSet(dst, 0, size);
+}
+
 void MemSet(void* dst, uint8 value, uint32 size)
 {
     uint8* dstC = (uint8*)dst;

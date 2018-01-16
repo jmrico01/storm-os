@@ -112,26 +112,60 @@ PrintString16:
  * ---------------------------------------------------------------------------
 */
 .set KERNEL_ADDR,       0x100000
-.set KERNEL_START,      2
-.set KERNEL_SECTORS,    32
+.set KERNEL_START,      8
+.set KERNEL_SECTORS,    128
 .set CODE_SEG,          0x08
 .set DATA_SEG,          0x10
+
+.set SMAP_SIG, 0x0534D4150	# "SMAP"
 
 BOOT1:
 
 # enable A20 (copied from assignments)
 seta20.1:
-inb	$0x64, %al
-testb	$0x2, %al
+inb $0x64, %al
+testb $0x2, %al
 jnz	seta20.1
-movb	$0xd1, %al
-outb	%al, $0x64
+movb $0xd1, %al
+outb %al, $0x64
 seta20.2:
 inb	$0x64, %al
-testb	$0x2, %al
+testb $0x2, %al
 jnz	seta20.2
-movb	$0xdf, %al
-outb	%al, $0x60
+movb $0xdf, %al
+outb %al, $0x60
+
+# detect physical memory map (from assignments)
+e820:
+xorl    %ebx, %ebx      # ebx must be 0 when first calling e820
+movl    $SMAP_SIG, %edx # edx must be 'SMAP' when calling e820
+movw    $(smap+4), %di  # set the address of the output buffer
+e820.1:
+movl    $20, %ecx       # set the size of the output buffer
+movl    $0xe820, %eax   # set the BIOS service code
+int     $0x15           # call BIOS service e820h
+e820.2:
+jc	    e820.fail       # error during e820h
+cmpl    $SMAP_SIG, %eax # check eax, which should be 'SMAP'
+jne	    e820.fail
+e820.3:
+movl    $20, -4(%di)
+addw    $24, %di
+cmpl    $0x0, %ebx		# whether it's the last descriptor
+je      e820.4
+jmp     e820.1
+e820.4:					# zero the descriptor after the last one
+xorb	%al, %al
+movw	$20, %cx
+rep	stosb
+jmp	e820.done
+
+e820.fail:
+movw $STR_E820_ERROR, %bx
+call PrintString16
+jmp .
+
+e820.done:
 
 # set video mode to graphic 640x480x4
 movb $0, %ah
@@ -152,9 +186,11 @@ movl %eax, %cr0
 # This ensures that the 32-bit code flag is truly set
 ljmp $CODE_SEG, $protected_mode
 
+STR_E820_ERROR:
+    .ascii "Memory map detection error.\r\n\0"
+
 # 4-byte alignment for GDT
 .balign 4
-
 # -- GDT --
 gdt_start:
 
@@ -217,7 +253,8 @@ addl $SECTOR_SIZE, %edi
 cmp $KERNEL_SECTORS, %eax
 jl read_sector
 
-# Jump to the kernel code
+# Jump to the kernel code, pass SMAP
+movl $smap, %edx
 jmp KERNEL_ADDR
 
 jmp .
@@ -281,5 +318,9 @@ ReadSectorLBA:
     popa
     ret
 
-# pad file up until the 1024th byte
+# reserve space for memory map
+smap:
+.space 0xc00, 0
+
+# pad file up until the 4096th byte
 .balign 1024, 0
