@@ -25,6 +25,8 @@ void LTR(uint16 sel);
 uint32 GetCR0();
 void SetCR0(uint32 val);
 
+uint32 GetCR2();
+
 void SetCR3(uint32 val);
 
 uint32 GetCR4();

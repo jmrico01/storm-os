@@ -9,6 +9,10 @@ start:
 movl $0x0, %ebp
 movl $(kernelStack + 4096), %esp
 
+pushl $dataEndLD
+pushl $dataStartLD
+pushl $textEndLD
+pushl $textStartLD
 pushl %edx
 call KernelMain
 

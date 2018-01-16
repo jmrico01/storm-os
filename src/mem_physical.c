@@ -1,6 +1,7 @@
 #include "mem_physical.h"
 
 #include "thread.h"
+#include "screen.h"
 
 #define NUM_PHYSICAL_PAGES (1 << 20)
 
@@ -102,7 +103,7 @@ void PhysicalMemoryInit(struct SMAP* smap)
     Printf("%d BIOS pages\n", biosPages);
     Printf("%d kernel pages\n", kernPages);
     Printf("%d user pages\n", userPages);
-    Printf("Initialized physical memory\n\n");
+    PrintfColor(COLOR_BGREEN, "Initialized physical memory\n\n");
 
     ContainerInit(userPages);
 }

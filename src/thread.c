@@ -4,6 +4,7 @@
 #include "interrupt.h"
 #include "mem_physical.h"
 #include "elf.h"
+#include "screen.h"
 
 enum ThreadState {
     TSTATE_READY,
@@ -148,6 +149,8 @@ void ThreadInit()
 
     currentID = 0;
     tcbs[0].state = TSTATE_RUN;
+
+    PrintfColor(COLOR_BGREEN, "Initialized threads\n\n");
 }
 
 uint32 GetCurrentID()
@@ -212,4 +215,13 @@ uint32 CreateProcess(void* elfAddr, uint32 quota)
     userContexts[pid].eip = ELFEntry(elfAddr);
 
     return pid;
+}
+
+void ForceRunProcess(uint32 pid)
+{
+    uint32 curid = currentID;
+    TQRemove(MAX_PROCS, pid);
+    tcbs[pid].state = TSTATE_RUN;
+    currentID = pid;
+    ContextSwitch(&kernelContexts[curid], &kernelContexts[pid]);
 }

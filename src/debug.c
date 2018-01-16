@@ -35,10 +35,10 @@ void DebugPanic(const char* file, int line, const char* fmt,...)
 	__asm __volatile("movl %%ebp,%0" : "=rm" (ebp));
 	DebugTrace(ebp, eips);
 	for (int i = 0; i < DEBUG_TRACEFRAMES && eips[i] != 0; i++) {
-		Printf("\tfrom 0x%08x\n", eips[i]);
+		Printf("\tfrom 0x%x\n", eips[i]);
     }
 
-	Printf("KERNEL PANIC !!!\n");
+	PrintfColor(COLOR_BRED, "KERNEL PANIC !!!\n");
 
     while (1);
 }

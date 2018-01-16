@@ -4,6 +4,7 @@
 #include "x86.h"
 #include "mem_physical.h"
 #include "thread.h"
+#include "screen.h"
 
 #define PTE_PWU     (PTE_P | PTE_W | PTE_U)
 
@@ -185,9 +186,11 @@ void VirtualMemoryInit()
     }
 
     SetPageDirectory(0);
+    Printf("Loaded identity page directory\n");
     EnablePaging();
+    Printf("Enabled paging\n");
 
-    Printf("Initialized virtual memory\n\n");
+    PrintfColor(COLOR_BGREEN, "Initialized virtual memory\n\n");
 }
 
 void SetPageDirectory(uint32 procIndex)

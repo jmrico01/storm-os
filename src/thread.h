@@ -12,4 +12,6 @@ uint32 GetCurrentID();
 void ProcessStartUser();
 uint32 CreateProcess(void* elfAddr, uint32 quota);
 
+void ForceRunProcess(uint32 pid);
+
 #endif

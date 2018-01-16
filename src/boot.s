@@ -113,11 +113,16 @@ PrintString16:
 */
 .set KERNEL_ADDR,       0x100000
 .set KERNEL_START,      8
-.set KERNEL_SECTORS,    128
+.set KERNEL_SECTORS,    248
 .set CODE_SEG,          0x08
 .set DATA_SEG,          0x10
 
-.set SMAP_SIG, 0x0534D4150	# "SMAP"
+.set USER_ADDR,         0x10000000
+.set USER_START,        256
+.set USER_SECTORS,      64
+
+# "SMAP"
+.set SMAP_SIG, 0x0534D4150
 
 BOOT1:
 
@@ -244,14 +249,27 @@ movw	%ax, %ss
 
 # Load kernel into KERNEL_ADDR, sector by sector
 movl $KERNEL_START, %eax
+movl $0, %ebx
 movl $KERNEL_ADDR, %edi
-
-read_sector:
+read_kern_sector:
 call ReadSectorLBA
 addl $1, %eax
+addl $1, %ebx
 addl $SECTOR_SIZE, %edi
-cmp $KERNEL_SECTORS, %eax
-jl read_sector
+cmp $KERNEL_SECTORS, %ebx
+jl read_kern_sector
+
+# Load user code into USER_ADDR, sector by sector
+movl $USER_START, %eax
+movl $0, %ebx
+movl $USER_ADDR, %edi
+read_user_sector:
+call ReadSectorLBA
+addl $1, %eax
+addl $1, %ebx
+addl $SECTOR_SIZE, %edi
+cmp $USER_SECTORS, %ebx
+jl read_user_sector
 
 # Jump to the kernel code, pass SMAP
 movl $smap, %edx

@@ -5,9 +5,12 @@
 #include "x86.h"
 #include "gcc.h"
 #include "pic.h"
+#include "syscall.h"
 #include "thread.h"
 #include "mem_physical.h"
 #include "mem_virtual.h"
+#include "screen.h"
+#include "debug.h"
 
 /* Application segment type bits ('app' bit = 1) */
 #define STA_X		0x8	    /* Executable segment */
@@ -169,7 +172,7 @@ void TrapReturn(struct TrapFrame* tf);
 static void InterruptInitIDT()
 {
 	/* check that T_IRQ0 is a multiple of 8 */
-	//KERN_ASSERT((T_IRQ0 & 7) == 0);
+	KERNEL_ASSERT((T_IRQ0 & 7) == 0);
 
 	/* install a default handler */
 	for (uint32 i = 0; i < sizeof(idt) / sizeof(idt[0]); i++) {
@@ -230,18 +233,35 @@ static void InterruptEnable(uint8 irq)
 	pic_enable(irq);
 }
 
-static void PageFaultHandler()
+static void PageFaultHandler(struct TrapFrame* tf)
 {
-    Printf("page fault\n");
+	uint32 pid = GetCurrentID();
+	uint32 errno = tf->err;
+	uint32 faultVA = GetCR2();
+
+	Printf("Page fault: VA%x, errno %x, process %d, EIP %x\n",
+		faultVA, errno, pid, tf->eip);
+
+	if (errno & PGFLT_PROT_VIOL) {
+		KERNEL_PANIC("Permission denied: va = %x, errno = %x\n",
+			faultVA, errno);
+		return;
+	}
+
+	int err;
+	AllocPage(pid, faultVA, PTE_P | PTE_U | PTE_W, &err);
+	if (err) {
+		KERNEL_PANIC("Page allocation failed: va = %x, errno = %x\n",
+			faultVA, errno);
+		return;
+	}
 }
 
-static void ExceptionHandler()
+static void ExceptionHandler(struct TrapFrame* tf)
 {
-    uint32 type = userContexts[GetCurrentID()].trapno;
-
-    switch (type) {
+    switch (tf->trapno) {
         case T_PGFLT: {
-            PageFaultHandler();
+            PageFaultHandler(tf);
             break;
         }
         default: {
@@ -250,7 +270,7 @@ static void ExceptionHandler()
     }
 }
 
-static void InterruptHandler()
+static void InterruptHandler(struct TrapFrame* tf)
 {
     uint32 type = userContexts[GetCurrentID()].trapno;
 
@@ -267,11 +287,6 @@ static void InterruptHandler()
             break;
         }
     }
-}
-
-static void SyscallHandler()
-{
-    Printf("system call\n");
 }
 
 void InterruptInit()
@@ -338,7 +353,7 @@ void InterruptInit()
     STI();
     Printf("Enabled interrupts\n");
 
-    Printf("Initialized interrupts\n\n");
+    PrintfColor(COLOR_BGREEN, "Initialized interrupts\n\n");
 }
 
 void SwitchTSS(uint32 pid)
@@ -355,22 +370,25 @@ void HandleTrap(struct TrapFrame* tf)
     userContexts[currentID] = *tf;
     SetPageDirectory(0);
 
-    Printf("Trap %d from process %d\n", tf->trapno, currentID);
+	/*if (tf->trapno != 32) {
+    	Printf("Trap %d from process %d\n", tf->trapno, currentID);
+	}*/
 
     if (T_DIVIDE <= tf->trapno && tf->trapno <= T_SECEV) {
-        ExceptionHandler();
+        ExceptionHandler(tf);
     }
     else if (T_IRQ0 + IRQ_TIMER <= tf->trapno
     && tf->trapno <= T_IRQ0 + IRQ_IDE2) {
-        InterruptHandler();
+        InterruptHandler(tf);
     }
     else if (tf->trapno == T_SYSCALL) {
-        SyscallHandler();
+        SyscallDispatch(tf);
     }
     else {
         // unhandled?
     }
 
     //ProcessStartUser();
+	SetPageDirectory(currentID);
     TrapReturn(tf);
 }

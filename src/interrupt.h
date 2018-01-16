@@ -63,7 +63,8 @@
 #define CPU_GDT_TSS     0x28    /* task state segment */
 #define CPU_GDT_NDESC	6       /* number of GDT entries used */
 
-#define FL_IF           0x00000200	/* Interrupt Flag */
+#define PGFLT_PROT_VIOL	0x1		/* Page fault caused by protection violation */
+#define FL_IF           0x200	/* Interrupt Flag */
 
 #ifndef __ASSEMBLER__
 

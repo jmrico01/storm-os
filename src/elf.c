@@ -10,23 +10,23 @@
  */
 void ELFLoad(void* exePtr, uint32 pid)
 {
-	elfhdr *eh;
+	elfhdr* eh;
 	proghdr *ph, *eph;
     //char* strtab;
-	sechdr *sh;
+	sechdr* sh;
     //sechdr *esh;
 	uint32 exe = (uint32)exePtr;
 
 	eh = (elfhdr*)exe;
 
-	KERN_ASSERT(eh->e_magic == ELF_MAGIC);
-	KERN_ASSERT(eh->e_shstrndx != ELF_SHN_UNDEF);
+	KERNEL_ASSERT(eh->e_magic == ELF_MAGIC);
+	KERNEL_ASSERT(eh->e_shstrndx != ELF_SHN_UNDEF);
 
 	sh = (sechdr*)((uint32) eh + eh->e_shoff);
 	//esh = sh + eh->e_shnum;
 
 	//strtab = (char*)(exe + sh[eh->e_shstrndx].sh_offset);
-	KERN_ASSERT(sh[eh->e_shstrndx].sh_type == ELF_SHT_STRTAB);
+	KERNEL_ASSERT(sh[eh->e_shstrndx].sh_type == ELF_SHT_STRTAB);
 
 	ph = (proghdr*)((uint32)eh + eh->e_phoff);
 	eph = ph + eh->e_phnum;
@@ -53,7 +53,7 @@ void ELFLoad(void* exePtr, uint32 pid)
             int err;
 			AllocPage(pid, va, perm, &err);
             if (err) {
-                KERN_PANIC("AllocPage failed on ELF load");
+                KERNEL_PANIC("AllocPage failed on ELF load");
             }
 
 			if (va < RoundDown(zva, PAGESIZE))
@@ -80,7 +80,7 @@ void ELFLoad(void* exePtr, uint32 pid)
 void* ELFEntry(void* exePtr)
 {
 	elfhdr* eh = (elfhdr*)exePtr;
-	KERN_ASSERT(eh->e_magic == ELF_MAGIC);
+	KERNEL_ASSERT(eh->e_magic == ELF_MAGIC);
 
 	return (void*)eh->e_entry;
 }

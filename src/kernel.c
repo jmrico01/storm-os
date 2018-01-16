@@ -7,15 +7,27 @@
 #include "thread.h"
 #include "printf.h"
 
-void KernelMain(struct SMAP* smap)
+struct KernInfo {
+    uint32 codeStart;
+    uint32 codeEnd;
+    uint32 dataStart;
+    uint32 dataEnd;
+};
+
+void KernelMain(struct SMAP* smap, struct KernInfo kernInfo)
 {
     ClearScreen(COLOR_BLACK);
-    Printf("Entered kernel\n\n");
+    PrintfColor(COLOR_BGREEN, "Entered kernel\n\n");
+    Printf("Code section: %x - %x\n", kernInfo.codeStart, kernInfo.codeEnd);
+    Printf("Data section: %x - %x\n\n", kernInfo.dataStart, kernInfo.dataEnd);
 
     InterruptInit();
     PhysicalMemoryInit(smap);
     VirtualMemoryInit();
     ThreadInit();
+
+    uint32 pid = CreateProcess((void*)(0x10000000), 10000);
+    ForceRunProcess(pid);
 
     MonitorRun();
 
@@ -26,8 +38,9 @@ void KernelMain(struct SMAP* smap)
 #include "system.c"
 #include "x86.c"
 #include "port_io.c"
-#include "interrupt.c"
 #include "pic.c"
+#include "interrupt.c"
+#include "syscall.c"
 #include "mem_physical.c"
 #include "mem_virtual.c"
 #include "thread.c"
