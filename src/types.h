@@ -74,4 +74,14 @@ uint32 Modulo64by32(uint64 a, uint32 b)
     return DivideAndMod64by32(&a, b);
 }
 
+uint32 RoundDown(uint32 a, uint32 b)
+{
+	return a - a % b;
+}
+
+uint32 RoundUp(uint32 a, uint32 b)
+{
+	return RoundDown(a + b - 1, b);
+}
+
 #endif

@@ -5,18 +5,7 @@
 #include "mem_physical.h"
 #include "thread.h"
 
-#define PTE_P       0x001 // Present
-#define PTE_W       0x002 // Writeable
-#define PTE_U       0x004 // User
-#define PTE_PWT     0x008 // Write-Through
-#define PTE_PCD     0x010 // Cache-Disable
-#define PTE_A       0x020 // Accessed
-#define PTE_D       0x040 // Dirty
-#define PTE_PS      0x080 // Page Size
-#define PTE_G       0x100 // Global
-#define PTE_COW     0x800 // Avail for system programmer's use
-
-#define PTE_PWU (PTE_P | PTE_W | PTE_U)
+#define PTE_PWU     (PTE_P | PTE_W | PTE_U)
 
 #define NUM_TABLES (PAGESIZE / sizeof(uint32))
 
@@ -251,4 +240,100 @@ uint32 AllocPage(uint32 procIndex, uint32 va, uint32 perm, int* err)
 
     *err = 0;
     return result;
+}
+
+uint32 PTCopyIn(uint32 pmap_id, uint32 uva, void* kva, uint32 len)
+{
+	if (!(MEM_USERLO <= uva && uva + len <= MEM_USERHI)) {
+		return 0;
+    }
+
+	if ((uint32)kva + len > MEM_USERHI) {
+		return 0;
+    }
+
+	uint32 copied = 0;
+	while (len) {
+		uint32 uva_pa = GetPageTableEntryByVA(pmap_id, uva);
+
+		if ((uva_pa & PTE_P) == 0) {
+            int err;
+			AllocPage(pmap_id, uva, PTE_P | PTE_U | PTE_W, &err);
+			uva_pa = GetPageTableEntryByVA(pmap_id, uva);
+		}
+
+		uva_pa = (uva_pa & 0xfffff000) + (uva % PAGESIZE);
+
+		uint32 size = (len < PAGESIZE - uva_pa % PAGESIZE) ?
+			len : PAGESIZE - uva_pa % PAGESIZE;
+
+		MemCopy(kva, (void *)uva_pa, size);
+
+		len -= size;
+		uva += size;
+		kva += size;
+		copied += size;
+	}
+
+	return copied;
+}
+uint32 PTCopyOut(void* kva, uint32 pmap_id, uint32 uva, uint32 len)
+{
+	if (!(MEM_USERLO <= uva && uva + len <= MEM_USERHI)) {
+		return 0;
+    }
+
+	if ((uint32)kva + len > MEM_USERHI)
+		return 0;
+
+	uint32 copied = 0;
+	while (len) {
+		uint32 uva_pa = GetPageTableEntryByVA(pmap_id, uva);
+
+		if ((uva_pa & PTE_P) == 0) {
+            int err;
+			AllocPage(pmap_id, uva, PTE_P | PTE_U | PTE_W, &err);
+			uva_pa = GetPageTableEntryByVA(pmap_id, uva);
+		}
+
+		uva_pa = (uva_pa & 0xfffff000) + (uva % PAGESIZE);
+
+		uint32 size = (len < PAGESIZE - uva_pa % PAGESIZE) ?
+			len : PAGESIZE - uva_pa % PAGESIZE;
+
+		MemCopy((void *)uva_pa, kva, size);
+
+		len -= size;
+		uva += size;
+		kva += size;
+		copied += size;
+	}
+
+	return copied;
+}
+uint32 PTMemSet(uint32 pmap_id, uint32 va, char c, uint32 len)
+{
+    uint32 set = 0;
+	while (len) {
+		uint32 pa = GetPageTableEntryByVA(pmap_id, va);
+
+		if ((pa & PTE_P) == 0) {
+            int err;
+			AllocPage(pmap_id, va, PTE_P | PTE_U | PTE_W, &err);
+			pa = GetPageTableEntryByVA(pmap_id, va);
+		}
+
+		pa = (pa & 0xfffff000) + (va % PAGESIZE);
+        
+		uint32 size = (len < PAGESIZE - pa % PAGESIZE) ?
+			len : PAGESIZE - pa % PAGESIZE;
+
+		MemSet((void*)pa, c, size);
+
+		len -= size;
+		va += size;
+		set += size;
+	}
+
+	return set;
 }

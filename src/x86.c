@@ -1,5 +1,19 @@
 #include "x86.h"
 
+void CLI()
+{
+	__asm __volatile("cli":::"memory");
+}
+void STI()
+{
+	__asm __volatile("sti;nop");
+}
+
+void LTR(uint16 sel)
+{
+	__asm __volatile("ltr %0" : : "r" (sel));
+}
+
 uint32 GetCR0()
 {
 	uint32 val;

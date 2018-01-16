@@ -33,10 +33,12 @@ echo "boot.bin size is " `stat --printf="%s" boot.bin`
 as $AS_FLAGS "$SRC_DIR/kernel_entry.s" -o kernel_entry.o
 # Compile main kernel code
 gcc $GCC_FLAGS $GCC_WARNINGS -c "$SRC_DIR/kernel.c" -o kernel.o
-as $AS_FLAGS "$SRC_DIR/ctx_switch.s" -o kernel_asm.o
+gcc $GCC_FLAGS $GCC_WARNINGS -c "$SRC_DIR/ctx_switch.s" -o kernel_cs.o
+gcc $GCC_FLAGS $GCC_WARNINGS -c "$SRC_DIR/trap_main.S" -o kernel_trap.o
+# gcc $GCC_FLAGS $GCC_WARNINGS "$SRC_DIR/ctx_switch.s" "$SRC_DIR/trap_main.S" -o kernel_asm.o
 
 # Link kernel entry and main kernel code
-ld $LD_FLAGS kernel_entry.o kernel.o kernel_asm.o -Ttext 0x100000 -o kernel.elf
+ld $LD_FLAGS kernel_entry.o kernel.o kernel_cs.o kernel_trap.o -Ttext 0x100000 -o kernel.elf
 echo "kernel.elf size is " `stat --printf="%s" kernel.elf`
 objcopy --only-keep-debug kernel.elf kernel.sym
 objcopy --strip-debug -O binary kernel.elf kernel.bin

@@ -1,6 +1,9 @@
 #include "thread.h"
 
 #include "gcc.h"
+#include "interrupt.h"
+#include "mem_physical.h"
+#include "elf.h"
 
 enum ThreadState {
     TSTATE_READY,
@@ -46,10 +49,10 @@ struct ThreadQueue {
 	uint32 tail;
 };
 
-uint8 kernelStack[PAGESIZE] gcc_aligned(PAGESIZE);
 uint8 procStacks[MAX_PROCS][PAGESIZE] gcc_aligned(PAGESIZE);
 
-struct KernelContext kernelContexts[MAX_PROCS];
+struct KernelContext    kernelContexts[MAX_PROCS];
+struct TrapFrame        userContexts[MAX_PROCS];
 
 struct TCB tcbs[MAX_PROCS];
 struct ThreadQueue threadQueues[MAX_PROCS + 1];
@@ -147,6 +150,11 @@ void ThreadInit()
     tcbs[0].state = TSTATE_RUN;
 }
 
+uint32 GetCurrentID()
+{
+    return currentID;
+}
+
 /**
  * Allocates new child thread context, set the state of the
  * new child thread as ready, and pushes it to the ready queue.
@@ -181,6 +189,27 @@ void ThreadYield()
     }
 }
 
-void StartUserProcess()
+void ProcessStartUser()
 {
+    SwitchTSS(currentID);
+    SetPageDirectory(currentID);
+
+    TrapReturn((void*)&userContexts[currentID]);
+}
+
+uint32 CreateProcess(void* elfAddr, uint32 quota)
+{
+    uint32 pid = ThreadSpawn(currentID, quota, (void*)ProcessStartUser);
+
+    ELFLoad(elfAddr, pid);
+
+    userContexts[pid].es = CPU_GDT_UDATA | 3;
+    userContexts[pid].ds = CPU_GDT_UDATA | 3;
+    userContexts[pid].cs = CPU_GDT_UCODE | 3;
+    userContexts[pid].ss = CPU_GDT_UDATA | 3;
+    userContexts[pid].esp = (void*)MEM_USERHI;
+    userContexts[pid].eflags = FL_IF;
+    userContexts[pid].eip = ELFEntry(elfAddr);
+
+    return pid;
 }

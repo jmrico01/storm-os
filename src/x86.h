@@ -2,6 +2,7 @@
 #define X86_H
 
 #include "types.h"
+#include "gcc.h"
 
 // CR0
 #define CR0_PE		0x00000001	/* Protection Enable */
@@ -15,6 +16,11 @@
 
 // CR4
 #define CR4_PGE 0x00000080  /* Page Global Enable */
+
+void CLI();
+void STI();
+
+void LTR(uint16 sel);
 
 uint32 GetCR0();
 void SetCR0(uint32 val);

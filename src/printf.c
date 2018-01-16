@@ -1,6 +1,5 @@
 #include "printf.h"
 
-#include "stdarg.h"
 #include "console.h"
 
 struct PrintBuf
