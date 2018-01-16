@@ -4,7 +4,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 SRC_DIR="$SCRIPT_DIR/../src"
 BUILD_DIR="$SCRIPT_DIR/../build"
 
-GCC_FLAGS="-std=c99 -nostdinc -ffreestanding -m32 -O0 -g3 -gdwarf-2 -fno-stack-protector -fvar-tracking -fvar-tracking-assignments"
+GCC_FLAGS="-std=gnu99 -nostdinc -ffreestanding -m32 -O0 -g3 -gdwarf-2 -fno-stack-protector -fvar-tracking -fvar-tracking-assignments"
 GCC_WARNINGS="-Wall -Wextra -Wno-unused-function -Wno-unused-parameter"
 
 AS_FLAGS="--32 -march=i386 -g"
