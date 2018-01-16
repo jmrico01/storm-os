@@ -1,5 +1,5 @@
-#ifndef SCREEN_H
-#define SCREEN_H
+#ifndef USER_SCREEN_H
+#define USER_SCREEN_H
 
 // screen width in bytes
 #define VGA_WIDTH 80
@@ -7,12 +7,6 @@
 #define VGA_HEIGHT 480
 #define VGA_PIXELS_PER_BYTE 8
 #define VGA_PLANES 4
-
-#define CHAR_SIZE 8
-#define CHAR_ROWS (VGA_HEIGHT / CHAR_SIZE)
-#define CHAR_COLS (VGA_WIDTH * VGA_PIXELS_PER_BYTE / CHAR_SIZE)
-
-#include "types.h"
 
 enum Color {
     COLOR_BLACK     = 0b0000,
@@ -33,14 +27,9 @@ enum Color {
     COLOR_WHITE     = 0b1111
 };
 
-void DrawCharAt(char c, int row, int col,
-    const uint8 font[128][8], enum Color color);
-// Scrolls the screen down by the given number of rows (pixels)
-void ScrollScreen(int rows);
+void DrawRect(uint8* buf, enum Color color,
+    int startX, int endX, int startY, int endY);
 
-void FlushBuffer();
-void DisplayBuffer(const uint8* buf);
-void DisplayUserBuffer(uint32 bufVA);
-void ClearScreen(enum Color color);
+void DisplayBuffer(const uint8 buf[VGA_WIDTH * VGA_HEIGHT * VGA_PLANES]);
 
 #endif

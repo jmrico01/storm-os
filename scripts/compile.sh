@@ -56,7 +56,7 @@ gcc $GCC_FLAGS_USER $GCC_WARNINGS -c "$SRC_DIR/user/lib/syscall.c" -o user_libs.
 # Assemble user entry
 as $AS_FLAGS "$SRC_DIR/user/entry.s" -o user_entry.o
 # Compile user code
-gcc $GCC_FLAGS_USER $GCC_WARNINGS -c "$SRC_DIR/user/pong.c" -o pong.o
+gcc $GCC_FLAGS_USER $GCC_WARNINGS -c "$SRC_DIR/user/user.c" -o pong.o
 ld $LD_FLAGS_USER user_libs.o user_entry.o pong.o -Ttext 0x40000000 -o pong.elf
 echo "pong.elf size is " `stat --printf="%s" pong.elf`
 dd if=/dev/zero of=pong.elf bs=1 count=1 seek=$((512*64 - 1))

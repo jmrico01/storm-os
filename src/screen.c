@@ -3,6 +3,7 @@
 #include "system.h"
 #include "port_io.h"
 #include "font8x8.h"
+#include "mem_virtual.h"
 
 #define VGA_ADDRESS 0xa0000
 
@@ -113,6 +114,20 @@ void DisplayBuffer(const uint8* buf)
         const uint8* planeBuf = buf + p * VGA_WIDTH * VGA_HEIGHT;
         PortWordOut(0x3c4, planeMasks[p]);
         MemCopy(screen, planeBuf, VGA_WIDTH * VGA_HEIGHT);
+    }
+    PortWordOut(0x3c4, 0x0f02);
+}
+
+void DisplayUserBuffer(uint32 bufVA)
+{
+    uint8* screen = (uint8*)VGA_ADDRESS;
+    uint32 pid = GetCurrentID();
+
+    PortWordOut(0x3ce, 0x5);
+    for (int p = 0; p < VGA_PLANES; p++) {
+        PortWordOut(0x3c4, planeMasks[p]);
+        uint32 srcVA = bufVA + p * VGA_WIDTH * VGA_HEIGHT;
+        PTCopyIn(pid, srcVA, screen, VGA_WIDTH * VGA_HEIGHT);
     }
     PortWordOut(0x3c4, 0x0f02);
 }

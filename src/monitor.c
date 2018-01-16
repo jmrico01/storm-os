@@ -6,6 +6,8 @@
 #define WHITESPACE "\t\r\n "
 #define MAX_ARGS 16
 
+#define USER_PROC_ADDR 0x10000000
+
 struct {
     int index;
 	char buf[CONSOLE_BUFFER_SIZE];
@@ -19,11 +21,13 @@ struct Command {
 };
 
 static int MonitorHelp(int argc, char** argv);
-static int MonitorColor(int argc, char** argv);
+static int MonitorTextColor(int argc, char** argv);
+static int MonitorUser(int argc, char** argv);
 
 static struct Command commands[] = {
     { "help", "Display this list of commands", MonitorHelp },
-    { "color", "Change the text or background colors", MonitorColor },
+    { "textcolor", "Change the default text color", MonitorTextColor },
+    { "user", "Start the user process", MonitorUser },
     /*{ "kerninfo", "Display information about the kernel", mon_kerninfo },
     { "runproc", "Run the dummy user process", mon_start_user },*/
 };
@@ -38,7 +42,7 @@ static int MonitorHelp(int argc, char** argv)
 	return 0;
 }
 
-static int MonitorColor(int argc, char** argv)
+static int MonitorTextColor(int argc, char** argv)
 {
     const char* colorNames[] = {
         "black",      "blue",           "green",        "cyan",
@@ -48,8 +52,8 @@ static int MonitorColor(int argc, char** argv)
     };
     char spaces[16];
 
-    if (argc != 3) {
-        Printf("Usage: color <text/background> <color>\n");
+    if (argc != 2) {
+        Printf("Usage: textcolor <color>\n");
         Printf("Available colors:");
         for (int i = 0; i < 16; i++) {
             int colorNameLen = StringLenN(colorNames[i], 16);
@@ -67,36 +71,44 @@ static int MonitorColor(int argc, char** argv)
         return 1;
     }
 
-    if (StringCmp(argv[1], "text") == 0) {
-        int color = -1;
-        for (int i = 0; i < 16; i++) {
-            if (StringCmp(argv[2], colorNames[i]) == 0) {
-                color = i;
-                break;
-            }
-        }
-        if (color == -1) {
-            Printf("Invalid color.\n");
-            Printf("Available colors:");
-            for (int i = 0; i < 16; i++) {
-                int colorNameLen = StringLenN(colorNames[i], 16);
-                for (int j = 0; j < 16 - colorNameLen; j++) {
-                    spaces[j] = ' ';
-                }
-                spaces[16 - colorNameLen] = '\0';
-
-                if (i % 4 == 0) {
-                    Printf("\n");
-                }
-                PrintfColor(i, "%s%s", colorNames[i], spaces);
-            }
-            Printf("\n");
-            return 1;
-        }
-        else {
-            SetTextColor(color);
+    int color = -1;
+    for (int i = 0; i < 16; i++) {
+        if (StringCmp(argv[1], colorNames[i]) == 0) {
+            color = i;
+            break;
         }
     }
+    if (color == -1) {
+        Printf("Invalid color.\n");
+        Printf("Available colors:");
+        for (int i = 0; i < 16; i++) {
+            int colorNameLen = StringLenN(colorNames[i], 16);
+            for (int j = 0; j < 16 - colorNameLen; j++) {
+                spaces[j] = ' ';
+            }
+            spaces[16 - colorNameLen] = '\0';
+
+            if (i % 4 == 0) {
+                Printf("\n");
+            }
+            PrintfColor(i, "%s%s", colorNames[i], spaces);
+        }
+        Printf("\n");
+        return 1;
+    }
+    else {
+        SetTextColor(color);
+    }
+
+    return 0;
+}
+
+static int MonitorUser(int argc, char** argv)
+{
+    ClearScreen(COLOR_WHITE);
+    ResetCursor();
+    uint32 pid = CreateProcess((void*)USER_PROC_ADDR, 10000);
+    ForceRunProcess(pid);
 
     return 0;
 }
@@ -155,13 +167,16 @@ void MonitorRun()
         "%s==========================================================%s\n",
         spaces, spaces);
     PrintfColor(COLOR_BMAGENTA,
-        "%s=                                                        =%s\n",
+        "%s|                       Welcome to                       |%s\n",
         spaces, spaces);
     PrintfColor(COLOR_BMAGENTA,
-        "%s=                       Storm O.S.                       =%s\n",
+        "%s|                       Storm O.S.                       |%s\n",
         spaces, spaces);
     PrintfColor(COLOR_BMAGENTA,
-        "%s=                                                        =%s\n",
+        "%s|                                                        |%s\n",
+        spaces, spaces);
+    PrintfColor(COLOR_BMAGENTA,
+        "%s|                   Main Command Prompt                  |%s\n",
         spaces, spaces);
     PrintfColor(COLOR_BMAGENTA,
         "%s==========================================================%s\n\n",
